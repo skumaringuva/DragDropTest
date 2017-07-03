@@ -1,6 +1,7 @@
 package com.sheshu.dragdroptest;
 
 import android.app.Activity;
+import android.app.SearchManager;
 import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
@@ -10,10 +11,17 @@ import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.util.Pair;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.DragEvent;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -42,10 +50,8 @@ public class MainActivity extends AppCompatActivity implements IImageDownloaded{
     private final String LAST_IMAGE = "lastImage";
     @BindView(R.id.photoGrid)
     GridView mPhotoGrid;
-    @BindView(R.id.search_filed)
-    EditText mSearchFiled;
     @BindView(R.id.search_button)
-    Button mSearchButton;
+    FloatingActionButton mSearchButton;
     private ImageAdapter mImageAdapter;
     private UIHandler uihandler;
     private ArrayList<FlickerItem> imageList;
@@ -73,13 +79,13 @@ public class MainActivity extends AppCompatActivity implements IImageDownloaded{
         @Override
         public void run() {
             // TODO Auto-generated method stub
-            String tag = mSearchFiled.getText().toString().trim();
-            if (tag != null && tag.length() >= 3)
+            String tag = mQueryKeyword.trim();
+            if (tag.length() >= 3)
                 FlickerFetcher.searchImagesByTag(uihandler, getApplicationContext(), tag);
         }
     };
-
-
+    private Menu mMenu;
+    private SearchView searchView;
     public static Bitmap getThumbnail(FlickerItem imgCon) {
         Bitmap bm = null;
         try {
@@ -104,7 +110,8 @@ public class MainActivity extends AppCompatActivity implements IImageDownloaded{
         ButterKnife.bind(this);
         mImageAdapter = new ImageAdapter(this, null);
         mPhotoGrid.setAdapter(mImageAdapter);
-        hideKeyboard(mSearchFiled);
+        if(searchView!=null)
+            hideKeyboard(searchView);
         configureGridView();
         uihandler = new UIHandler();
         // Get prevoiusly downloaded list after orientation change
@@ -126,16 +133,6 @@ public class MainActivity extends AppCompatActivity implements IImageDownloaded{
     private void hideKeyboard(View view) {
         InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Activity.INPUT_METHOD_SERVICE);
         inputMethodManager.hideSoftInputFromWindow(view.getWindowToken(), 0);
-    }
-
-    @OnClick(R.id.search_button)
-    void onSearch(View view) {
-        if (mPhotoGrid.getAdapter() != null) {
-            mImageAdapter.mFlickerItemList = new ArrayList<FlickerItem>();
-            mPhotoGrid.setAdapter(mImageAdapter);
-        }
-        new Thread(getMetadata).start();
-        hideKeyboard(mSearchFiled);
     }
 
     private void configureGridView() {
@@ -273,6 +270,7 @@ public class MainActivity extends AppCompatActivity implements IImageDownloaded{
 
         public View getView(int position, View convertView, ViewGroup parent) {
             ImageView i = new ImageView(mContext);
+            i.setScaleType(ImageView.ScaleType.CENTER_CROP);
             if (mFlickerItemList.get(position).thumb != null) {
                 i.setImageBitmap(mFlickerItemList.get(position).thumb);
                 i.setLayoutParams(new GridView.LayoutParams(mCellWidth, mCellHeight));
@@ -322,4 +320,52 @@ public class MainActivity extends AppCompatActivity implements IImageDownloaded{
             super.handleMessage(msg);
         }
     }
+
+    String mQueryKeyword = "";
+    private void loadSearchResults(String queryKeyword){
+        mQueryKeyword = queryKeyword;
+
+        if (mPhotoGrid.getAdapter() != null) {
+            mImageAdapter.mFlickerItemList = new ArrayList<FlickerItem>();
+            mPhotoGrid.setAdapter(mImageAdapter);
+        }
+        new Thread(getMetadata).start();
+        hideKeyboard(searchView);
+
+
+    }
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_search, menu);
+        this.mMenu = menu;
+        SearchManager manager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+        //SearchView searchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
+        MenuItem searchItem = menu.findItem(R.id.action_search);
+        searchView = (SearchView)searchItem.getActionView();
+
+        searchView.setIconified(false);
+        searchView.setSearchableInfo(manager.getSearchableInfo(getComponentName()));
+        searchView.setSubmitButtonEnabled(false);
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                loadSearchResults(query);
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String query) {
+                //String mCurrentSearchKeyword = query;
+                return true;
+            }
+        });
+
+        return true;
+    }
+
+
+
 }

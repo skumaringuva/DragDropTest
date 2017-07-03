@@ -1,6 +1,7 @@
 package com.sheshu.dragdroptest;
 
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -9,6 +10,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.widget.ImageView;
 
 import com.sheshu.dragdroptest.Utils.Utils;
+import com.squareup.picasso.Picasso;
 
 /**
  * Created by Sheshu on 4/23/17.
@@ -29,6 +31,10 @@ public class ShowPhotoActivity extends AppCompatActivity implements IImageDownlo
         mFlickerPhoto = getIntent().getParcelableExtra(Utils.ARG_IMAGE);
         // Get large image of selected thumnail
         new GetLargePhotoThread(mFlickerPhoto, uihandler).start();
+
+        //Picasso library seems slow. 
+        //Picasso.with(this).load(Uri.parse(mFlickerPhoto.getLargeURL())).into(mLargeImage);
+
     }
 
     @Override
